@@ -16,3 +16,6 @@ __pycache__/
 # Ignore OS files
 .DS_Store
 Thumbs.db
+
+# Ignore checkpoints from smoke tests
+checkpoints/
