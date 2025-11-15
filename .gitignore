@@ -1,6 +1,7 @@
 # Ignore data files
 /data/
 /PongNoFrameskip-v4/
+.vscode/
 
 # Ignore common Python artifacts
 __pycache__/
