@@ -1,0 +1,10 @@
+Metric,BC Model Result
+Average Cumulative Reward,-8.40
+Standard Deviation,8.93
+Average Action Latency (ms),24.33
+NOOP (%),21.97
+FIRE (%),7.92
+UP (%),8.71
+DOWN (%),29.49
+RIGHTFIRE (%),8.11
+LEFTFIRE (%),23.77

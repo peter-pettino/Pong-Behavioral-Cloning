@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import time
 import os
+import pandas as pd
 from model import create_pong_cnn  # Import model architecture
 
 # Register ALE environments
@@ -14,6 +15,15 @@ gym.register_envs(ale_py)
 MODEL_PATH = 'checkpoints/best_model.weights.h5'  # Path to trained weights
 IMAGE_SIZE = (84, 84)
 NUM_ACTIONS = 6  # Full Atari action space
+
+# Map action index to name for reporting
+ACTION_MAP = {0: 'NOOP', 1: 'FIRE', 2: 'UP', 3: 'DOWN', 4: 'RIGHTFIRE', 5: 'LEFTFIRE'}
+
+# --- BENCHMARK SETTINGS ---
+# Set to 100 episodes for statistical robustness
+NUM_EPISODES = 100
+# Set max steps to 1000 to match fixed-length rollout benchmarks
+MAX_STEPS = 1000
 
 def preprocess_frame(frame):
     """
@@ -37,11 +47,46 @@ def preprocess_frame(frame):
     # Shape becomes (1, 84, 84, 1)
     return np.expand_dims(normalized_img, axis=(0, -1))
 
-# --- Action Mapping ---
-# The model predicts one of 6 Atari actions
-# We'll use the model's prediction directly
-# Atari Pong actions: 0=NOOP, 1=FIRE, 2=RIGHT, 3=LEFT, 4=RIGHTFIRE, 5=LEFTFIRE
-# In practice, 2 (UP) and 3 (DOWN) are the main actions used
+def generate_report(results):
+    """Calculates and saves the final aggregate metrics for the report."""
+    df = pd.DataFrame(results)
+    
+    # 1. Score Metrics
+    avg_score = df['cumulative_reward'].mean()
+    std_dev_score = df['cumulative_reward'].std()
+    
+    # 2. Latency Metric
+    avg_latency_ms = df['avg_latency_ms'].mean()
+    
+    # 3. Action Usage Metrics
+    total_actions = df['total_actions'].sum()
+    action_metrics = {}
+    for action_name in ACTION_MAP.values():
+        total_count = df[f'{action_name}_count'].sum()
+        action_metrics[f'{action_name} (%)'] = (total_count / total_actions) * 100
+        
+    print("\n\n--- FINAL BENCHMARK REPORT ---")
+    print(f"Total Episodes Run: {NUM_EPISODES}")
+    print(f"Max Steps Per Episode: {MAX_STEPS}")
+    print(f"Average Cumulative Reward: {avg_score:.2f}")
+    print(f"Standard Deviation: {std_dev_score:.2f}")
+    print(f"Average Action Latency: {avg_latency_ms:.2f} ms")
+    print("Action Usage (%)")
+    for name, pct in action_metrics.items():
+        print(f"  {name}: {pct:.2f}%")
+        
+    # Save the raw episode data and the final aggregate report
+    df.to_csv('pong_agent_raw_episode_data.csv', index=False)
+    print("\nRaw episode data saved to: pong_agent_raw_episode_data.csv")
+    
+    # Create the comparison DataFrame for the final report
+    comparison_data = {
+        'Metric': ['Average Cumulative Reward', 'Standard Deviation', 'Average Action Latency (ms)'] + list(action_metrics.keys()),
+        'BC Model Result': [f'{avg_score:.2f}', f'{std_dev_score:.2f}', f'{avg_latency_ms:.2f}'] + [f'{v:.2f}' for v in action_metrics.values()]
+    }
+    df_comparison = pd.DataFrame(comparison_data)
+    df_comparison.to_csv('pong_agent_comparison_report.csv', index=False)
+    print("Comparison report saved to: pong_agent_comparison_report.csv")
 
 # --- Load the Trained Model ---
 if not os.path.exists(MODEL_PATH):
@@ -62,41 +107,69 @@ print("Model loaded successfully.")
 # Using render_mode="human" will open a window to watch the game
 env = gym.make("ALE/Pong-v5", render_mode="human")
 
-NUM_EPISODES = 10  # How many games to play
+episode_results = []  # To store results of each episode
 
 try:
     for episode in range(NUM_EPISODES):
-        print(f"--- Starting Episode: {episode + 1} ---")
-        total_reward = 0
+        print(f"--- Starting Episode: {episode + 1}/{NUM_EPISODES} ---")
         
-        # Reset the environment for a new game
+        # Reset episode metrics
+        total_reward = 0
+        total_latency = 0
+        action_counts = {f"{name}_count": 0 for name in ACTION_MAP.values()}
+        
         observation, info = env.reset()
         
+        # Reset step-based flags
         terminated = False
         truncated = False
         
-        while not terminated and not truncated:
+        # The game loop now runs for a fixed number of steps (1000)
+        step = 0
+        for step in range(MAX_STEPS):
+            if terminated or truncated:
+                break
+                
+            # 1. START LATENCY TIMER
+            start_time = time.time()
             
-            # 1. PREPROCESS the current game frame
+            # 2. PREPROCESS & PREDICT
             preprocessed_obs = preprocess_frame(observation)
-            
-            # 2. PREDICT the action
-            # Model outputs logits for 6 actions
             action_logits = model.predict(preprocessed_obs, verbose=0)
-            predicted_action = np.argmax(action_logits[0])
+            predicted_action_idx = np.argmax(action_logits[0])
             
-            # 3. TAKE STEP: Use the predicted action directly
-            observation, reward, terminated, truncated, info = env.step(predicted_action)
+            # 3. STOP LATENCY TIMER & AGGREGATE
+            latency_ms = (time.time() - start_time) * 1000
+            total_latency += latency_ms
             
+            # 4. RECORD ACTION
+            predicted_action_name = ACTION_MAP.get(predicted_action_idx, 'UNKNOWN')
+            action_counts[f"{predicted_action_name}_count"] += 1
+            
+            # 5. TAKE STEP
+            observation, reward, terminated, truncated, info = env.step(predicted_action_idx)
             total_reward += reward
-            
-            # Optional: Add a small delay so you can watch
-            # time.sleep(0.01) 
 
-        print(f"Episode {episode + 1} finished. Total Reward: {total_reward}")
+        # --- END OF EPISODE LOOP ---
+        
+        # Save results for this episode
+        episode_data = {
+            'episode': episode + 1,
+            'cumulative_reward': total_reward,
+            'avg_latency_ms': total_latency / (step + 1) if step >= 0 else 0,
+            'total_actions': step + 1
+        }
+        episode_data.update(action_counts)
+        episode_results.append(episode_data)
+
+        print(f"Episode {episode + 1} finished. Total Reward: {total_reward}. Steps: {step + 1}")
 
 finally:
     # Always close the environment
     env.close()
     print("--------------------")
-    print("All episodes complete. Environment closed.")
+    print(f"All {NUM_EPISODES} episodes complete. Environment closed.")
+    
+    # Generate the final report
+    if episode_results:
+        generate_report(episode_results)
