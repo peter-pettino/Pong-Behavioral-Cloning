@@ -6,33 +6,26 @@ import cv2
 import time
 import os
 import pandas as pd
-from model import create_pong_cnn  # Import model architecture
+from model import create_pong_cnn
 
 # Register ALE environments
 gym.register_envs(ale_py)
 
 # --- Constants ---
-MODEL_PATH = 'checkpoints/best_model.weights.h5'  # Path to trained weights
+MODEL_PATH = 'model/best_model.weights.h5'  # Path to trained weights
 IMAGE_SIZE = (84, 84)
-NUM_ACTIONS = 6  # Full Atari action space
+NUM_ACTIONS = 6
 
 # Map action index to name for reporting
 ACTION_MAP = {0: 'NOOP', 1: 'FIRE', 2: 'UP', 3: 'DOWN', 4: 'RIGHTFIRE', 5: 'LEFTFIRE'}
 
 # --- BENCHMARK SETTINGS ---
-# Set to 100 episodes for statistical robustness
 NUM_EPISODES = 100
-# Set max steps to 1000 to match fixed-length rollout benchmarks
 MAX_STEPS = 1000
 
 def preprocess_frame(frame):
     """
     Preprocesses a single game frame.
-    
-    1. Grayscale
-    2. Resize
-    3. Normalize
-    4. Add channel and batch dimensions
     """
     # 1. Grayscale
     gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -79,7 +72,7 @@ def generate_report(results):
     df.to_csv('pong_agent_raw_episode_data.csv', index=False)
     print("\nRaw episode data saved to: pong_agent_raw_episode_data.csv")
     
-    # Create the comparison DataFrame for the final report
+    # Create the comparison DataFrame 
     comparison_data = {
         'Metric': ['Average Cumulative Reward', 'Standard Deviation', 'Average Action Latency (ms)'] + list(action_metrics.keys()),
         'BC Model Result': [f'{avg_score:.2f}', f'{std_dev_score:.2f}', f'{avg_latency_ms:.2f}'] + [f'{v:.2f}' for v in action_metrics.values()]
@@ -104,7 +97,6 @@ model.load_weights(MODEL_PATH)
 print("Model loaded successfully.")
 
 # --- Create the Environment ---
-# Using render_mode="human" will open a window to watch the game
 env = gym.make("ALE/Pong-v5", render_mode="human")
 
 episode_results = []  # To store results of each episode

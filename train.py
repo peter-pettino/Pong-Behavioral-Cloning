@@ -40,7 +40,7 @@ def load_data(data_path, smoke_test=False, subset_size=1000):
     
     # Smoke test: use subset
     if smoke_test:
-        print(f"\n🔥 SMOKE TEST MODE: Using {subset_size} samples")
+        print(f"\nSMOKE TEST MODE: Using {subset_size} samples")
         train_indices = np.random.choice(len(X_train), 
                                         min(subset_size, len(X_train)), 
                                         replace=False)
@@ -190,7 +190,7 @@ def main():
     best_epoch = history.history['val_accuracy'].index(best_val_acc) + 1
     print(f"\nBest validation accuracy: {best_val_acc * 100:.2f}% (Epoch {best_epoch})")
     
-    print("\n✓ Training complete!")
+    print("\nTraining complete!")
 
 
 if __name__ == "__main__":

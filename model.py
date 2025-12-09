@@ -58,7 +58,6 @@ def create_pong_cnn(input_shape=(84, 84, 1), num_actions=6):
 class PongCNN:
     """
     Wrapper class for the Pong CNN model.
-    Provides consistent interface similar to PyTorch.
     """
     
     def __init__(self, input_shape=(84, 84, 1), num_actions=6):
@@ -120,4 +119,4 @@ if __name__ == "__main__":
     total_params = model.model.count_params()
     print(f"\nTotal parameters: {total_params:,}")
     
-    print("\n✓ Model test passed!")
+    print("\nModel test passed!")

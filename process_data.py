@@ -58,7 +58,7 @@ def load_npz_data(npz_path, base_dir):
 		arr = np.array(arr)
 		if arr.shape[0] == len(obs_paths):
 			return arr[idxs]
-		return arr  # episode_returns may be per-episode, not per-frame
+		return arr
 	return {
 		'images': np.stack(images) if images else np.empty((0, *IMG_SIZE)),
 		'model_selected_actions': filter_arr(data['model selected actions']),
@@ -99,7 +99,7 @@ def main():
 	X = dataset['images']
 	y = dataset['model_selected_actions']
 	
-	# Add a channel dimension for the CNN (batch, height, width) -> (batch, height, width, channels)
+	# Add a channel dimension for the CNN
 	X = np.expand_dims(X, axis=-1)
 	
 	print(f"\nTotal samples collected: {X.shape[0]}")
@@ -114,7 +114,7 @@ def main():
 		)
 		print("Applied stratified split to maintain action distribution")
 	except ValueError:
-		# If stratification fails (e.g., too few samples per class), do regular split
+		# If stratification fails, do regular split
 		X_train, X_test, y_train, y_test = train_test_split(
 			X, y, test_size=0.2, random_state=42, shuffle=True
 		)
