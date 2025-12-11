@@ -2,7 +2,7 @@
 
 This project implements **Behavioral Cloning** to train a CNN agent to play Atari Pong by learning from expert gameplay demonstrations. The model achieves competitive performance by imitating a pre-trained expert agent through supervised learning.
 
-**Link to Processed Data**: [CSE5819 Processed Dataset](https://uconn-my.sharepoint.com/:f:/g/personal/peter_pettino_uconn_edu/IgDHgXW6CUXZRJXRJ33Dr7yxAeFN-zEN98IsWNgCvrW0ERs?e=dIc0p5)
+**Link to Processed Data**: [CSE 5819 Processed Dataset](https://uconn-my.sharepoint.com/:f:/g/personal/peter_pettino_uconn_edu/IgDHgXW6CUXZRJXRJ33Dr7yxAeFN-zEN98IsWNgCvrW0ERs?e=dIc0p5)
 
 ## Results
 
